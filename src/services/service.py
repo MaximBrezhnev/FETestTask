@@ -1,20 +1,27 @@
 from datetime import timedelta
 from typing import Optional, List, Dict
 
+from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
-from jose import jwt
-from jose import JWTError
 
-from src.auth.services import create_jwt_token
+from src.database.models import User
+from src.services.dal import UserDAL
+from src.services.email import EmailService
+from src.services.hashing import Hasher
+from src.services.security import create_jwt_token
 from src.settings import project_settings
-from src.user.models import User
-from src.user.services.dal import UserDAL
-from src.user.services.email import EmailService
-from src.user.services.hashing import Hasher
 
 
 class UserService:
+    """
+    Класс, необходимый для реализации бизнес-логики приложения путем
+    совместного использования его различных сервисов (безопасности, хеширования, отправки
+    электронной почты, работы с базой данных) и возвращения результатов работы в соответствующий эндпоинт
+    """
+
     def __init__(self, db_session: AsyncSession):
+        """Инициализация объекта класса путем создания объектов необходимых сервисов"""
+
         self.dal: UserDAL = UserDAL(db_session=db_session)
         self.hasher: Hasher = Hasher()
         self.email = EmailService()
@@ -27,13 +34,28 @@ class UserService:
             username: str,
             password: str
     ) -> None:
-        user: User = await self.dal.create_new_user(
-            name=name,
-            surname=surname,
-            username=username,
-            email=email,
-            hashed_password=self.hasher.get_password_hash(password=password),
-        )
+        user: Optional[User] = await self.dal.get_user_by_email(email=email)
+
+        if user is not None:
+            if user.is_verified:
+                raise ValueError("User already exists")
+
+            await self.dal.update_user_data(
+                name=name,
+                surname=surname,
+                username=username,
+                password=self.hasher.get_password_hash(password),
+                user=user,
+            )
+
+        else:
+            user: User = await self.dal.create_new_user(
+                name=name,
+                surname=surname,
+                username=username,
+                email=email,
+                hashed_password=self.hasher.get_password_hash(password=password),
+            )
 
         await self.email.send_email(
             email=[
@@ -55,7 +77,7 @@ class UserService:
         if user is None:
             raise JWTError("Could not validate credentials")
 
-        user: User = await self.dal.verify_user(user=user)
+        await self.dal.verify_user(user=user)
         return user
 
     async def get_users(self) -> List[User]:
@@ -109,7 +131,7 @@ class UserService:
     async def update_user(
             self,
             user: User,
-            parameters_for_update: Dict[str: str],
+            parameters_for_update: Dict[str, str],
     ) -> User:
         updated_user: User = await self.dal.update_user(
             user=user,

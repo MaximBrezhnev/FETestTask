@@ -1,0 +1,35 @@
+services:
+  database:
+    image: postgres:16-alpine
+    restart: always
+    volumes:
+      - ~/.pg/pg_data/FETT:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    networks:
+      - custom
+
+  app:
+    build:
+      context: .
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      - database
+    command: >
+      sh -c "sleep 10 && alembic upgrade head && python3 -m src.main"
+    networks:
+      - custom
+
+networks:
+  custom:
+    driver: bridge

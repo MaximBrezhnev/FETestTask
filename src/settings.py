@@ -5,6 +5,8 @@ from pydantic_settings import SettingsConfigDict
 
 
 class ProjectSettings(BaseSettings):
+    """Класс, представляющий собой настройки проекта"""
+
     SECRET_KEY: str
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
@@ -25,7 +27,6 @@ class ProjectSettings(BaseSettings):
     PWD_DEPRECATED: str
 
     APP_TITLE: str
-    API_URL_PREFIX: str
     APP_HOST: str
     APP_PORT: int
 

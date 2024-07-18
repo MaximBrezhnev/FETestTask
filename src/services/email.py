@@ -1,20 +1,25 @@
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import List
 from uuid import UUID
 
-from fastapi_mail import ConnectionConfig
-from fastapi_mail import FastMail
-from fastapi_mail import MessageSchema
+from fastapi_mail import ConnectionConfig, MessageSchema, FastMail
 from jose import jwt
 from pydantic import EmailStr
 
+from src.database.models import User
 from src.settings import project_settings
-from src.user.models import User
 
 
 class EmailService:
+    """
+    Класс, предоставляющий приложению функционал для работы с электронной почтой
+    """
+
     def __init__(self):
+        """
+        Инициализация объекта класса путем конфигурации соединения с почтовым сервером
+        """
+
         self.email_conf: ConnectionConfig = ConnectionConfig(
             MAIL_USERNAME=project_settings.MAIL_USERNAME,
             MAIL_PASSWORD=project_settings.MAIL_PASSWORD,
@@ -35,14 +40,14 @@ class EmailService:
     ) -> None:
         token: str = self._create_token_for_email_confirmation(
             user_id=instance.user_id,
-            email=email,
+            email=email[0],
             instance=instance
         )
 
         message: MessageSchema = MessageSchema(
             subject=subject,
             recipients=email,
-            body=f"Токен для подтверждения регистрации: {token}",
+            body=f"Токен для подтверждения электронной почты: {token}",
             subtype="html",
         )
 
@@ -56,13 +61,18 @@ class EmailService:
             email: str,
             instance: User
     ) -> str:
+        """
+        Метод, создающий токен для подтверждения электронной почты. В случае, если происходит ее смена,
+        помимо id пользователя в токен записывается новый адрес электронной почты
+        """
+
         current_time: datetime = datetime.utcnow()
         expiration_time: datetime = current_time + timedelta(
             seconds=project_settings.MAIL_CONFIRMATION_TOKEN_EXPIRE_SECONDS
         )
 
         token_data: dict = {
-            "user_id": user_id,
+            "user_id": str(user_id),
             "exp": expiration_time,
         }
 
