@@ -133,10 +133,12 @@ class UserService:
             user: User,
             parameters_for_update: Dict[str, str],
     ) -> User:
-        updated_user: User = await self.dal.update_user(
+        await self.dal.update_user(
             user=user,
             parameters_for_update=parameters_for_update
         )
+        updated_user: User = await self.dal.get_user_by_id(user.user_id)
+
         return updated_user
 
     async def change_password(

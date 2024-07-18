@@ -102,16 +102,20 @@ class UserDAL:
             self,
             user: User,
             parameters_for_update: Dict[str, str]
-    ) -> User:
+    ) -> None:
         async with self.db_session.begin():
             if (name := parameters_for_update.get("name", None)) is not None:
-                setattr(user, "name", name)
+                await self.db_session.execute(
+                    update(User).values(name=name).filter_by(user_id=user.user_id)
+                )
             if (surname := parameters_for_update.get("surname", None)) is not None:
-                setattr(user, "surname", surname)
+                await self.db_session.execute(
+                    update(User).values(surname=surname).filter_by(user_id=user.user_id)
+                )
             if (username := parameters_for_update.get("username", None)) is not None:
-                setattr(user, "username", username)
-
-        return user
+                await self.db_session.execute(
+                    update(User).values(username=username).filter_by(user_id=user.user_id)
+                )
 
     async def change_password(self, user: User, new_password: str) -> User:
         async with self.db_session.begin():
