@@ -85,7 +85,7 @@ class PasswordValidationMixin:
         """
         Метод, производящий проверку пароля на надежность
         """
-        if len(password) < PasswordValidationMixin.MIN_PASSWORD_LENGTH:
+        if len(password) < cls.MIN_PASSWORD_LENGTH:
             return False
 
         has_upper = any(char.isupper() for char in password)
